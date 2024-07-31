@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 
 let lastExpandForwardSelection: vscode.Selection | undefined;
+let lastExpandReverseSelection: vscode.Selection | undefined;
 let lastMoveForwardSelection: vscode.Selection | undefined;
 let lastMoveBackwardSelection: vscode.Selection | undefined;
 
@@ -31,7 +32,7 @@ function findContiguousBlock(document: vscode.TextDocument, line: number, search
     return [startLine, endLine];
 }
 
-function selectContiguousNonEmptyLines(editor: vscode.TextEditor, document: vscode.TextDocument, currentSelection: vscode.Selection, mode: 'expandForward' | 'moveForward' | 'moveBackward'): vscode.Selection {
+function selectContiguousNonEmptyLines(editor: vscode.TextEditor, document: vscode.TextDocument, currentSelection: vscode.Selection, mode: 'expandForward' | 'expandReverse' | 'moveForward' | 'moveBackward'): vscode.Selection {
     let startLine: number;
     let endLine: number;
     let lastSelection: vscode.Selection | undefined;
@@ -39,6 +40,9 @@ function selectContiguousNonEmptyLines(editor: vscode.TextEditor, document: vsco
     switch (mode) {
         case 'expandForward':
             lastSelection = lastExpandForwardSelection;
+            break;
+        case 'expandReverse':
+            lastSelection = lastExpandReverseSelection;
             break;
         case 'moveForward':
             lastSelection = lastMoveForwardSelection;
@@ -58,16 +62,29 @@ function selectContiguousNonEmptyLines(editor: vscode.TextEditor, document: vsco
                 startLine = lastSelection.start.line;
                 [, endLine] = findContiguousBlock(document, lastSelection.end.line + 1, false, true);
                 break;
-            case 'moveForward':
-                [startLine, endLine] = findContiguousBlock(document, lastSelection.end.line + 1, false, true);
-                break;
-            case 'moveBackward':
+            case 'expandReverse':
+                endLine = lastSelection.end.line;
                 let searchLine = lastSelection.start.line - 1;
                 while (searchLine >= 0 && document.lineAt(searchLine).isEmptyOrWhitespace) {
                     searchLine--;
                 }
                 if (searchLine >= 0) {
-                    [startLine, endLine] = findContiguousBlock(document, searchLine, true, false);
+                    [startLine, ] = findContiguousBlock(document, searchLine, true, false);
+                } else {
+                    // If we've reached the top of the document, maintain the current selection
+                    return lastSelection;
+                }
+                break;
+            case 'moveForward':
+                [startLine, endLine] = findContiguousBlock(document, lastSelection.end.line + 1, false, true);
+                break;
+            case 'moveBackward':
+                let searchLineBack = lastSelection.start.line - 1;
+                while (searchLineBack >= 0 && document.lineAt(searchLineBack).isEmptyOrWhitespace) {
+                    searchLineBack--;
+                }
+                if (searchLineBack >= 0) {
+                    [startLine, endLine] = findContiguousBlock(document, searchLineBack, true, false);
                 } else {
                     // If we've reached the top of the document, maintain the current selection
                     return lastSelection;
@@ -86,6 +103,9 @@ function selectContiguousNonEmptyLines(editor: vscode.TextEditor, document: vsco
     switch (mode) {
         case 'expandForward':
             lastExpandForwardSelection = newSelection;
+            break;
+        case 'expandReverse':
+            lastExpandReverseSelection = newSelection;
             break;
         case 'moveForward':
             lastMoveForwardSelection = newSelection;
@@ -107,6 +127,14 @@ export function activate(context: vscode.ExtensionContext) {
         }
     });
 
+    let expandReverseDisposable = vscode.commands.registerCommand('extension.selectContiguousNonEmptyLinesExpandReverse', () => {
+        const editor = vscode.window.activeTextEditor;
+        if (editor) {
+            editor.selection = selectContiguousNonEmptyLines(editor, editor.document, editor.selection, 'expandReverse');
+            editor.revealRange(new vscode.Range(editor.selection.start, editor.selection.start));
+        }
+    });
+
     let moveForwardDisposable = vscode.commands.registerCommand('extension.selectContiguousNonEmptyLinesMoveForward', () => {
         const editor = vscode.window.activeTextEditor;
         if (editor) {
@@ -123,7 +151,7 @@ export function activate(context: vscode.ExtensionContext) {
         }
     });
 
-    context.subscriptions.push(expandForwardDisposable, moveForwardDisposable, moveBackwardDisposable);
+    context.subscriptions.push(expandForwardDisposable, expandReverseDisposable, moveForwardDisposable, moveBackwardDisposable);
 }
 
 export function deactivate() {}

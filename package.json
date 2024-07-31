@@ -2,7 +2,7 @@
   "name": "select-non-empty-lines",
   "displayName": "Select Non-Empty Lines",
   "description": "Select contiguous non-empty lines with various modes",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "engines": {
     "vscode": "^1.60.0"
   },
@@ -11,6 +11,7 @@
   ],
   "activationEvents": [
     "onCommand:extension.selectContiguousNonEmptyLinesExpandForward",
+    "onCommand:extension.selectContiguousNonEmptyLinesExpandReverse",
     "onCommand:extension.selectContiguousNonEmptyLinesMoveForward",
     "onCommand:extension.selectContiguousNonEmptyLinesMoveBackward"
   ],
@@ -20,6 +21,10 @@
       {
         "command": "extension.selectContiguousNonEmptyLinesExpandForward",
         "title": "Select Contiguous Non-Empty Lines (Expand Forward)"
+      },
+      {
+        "command": "extension.selectContiguousNonEmptyLinesExpandReverse",
+        "title": "Select Contiguous Non-Empty Lines (Expand Reverse)"
       },
       {
         "command": "extension.selectContiguousNonEmptyLinesMoveForward",
@@ -35,6 +40,11 @@
         "command": "extension.selectContiguousNonEmptyLinesExpandForward",
         "key": "ctrl+shift+l",
         "mac": "cmd+shift+l"
+      },
+      {
+        "command": "extension.selectContiguousNonEmptyLinesExpandReverse",
+        "key": "ctrl+shift+h",
+        "mac": "cmd+shift+h"
       },
       {
         "command": "extension.selectContiguousNonEmptyLinesMoveForward",
